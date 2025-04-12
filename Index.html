@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    
+    <!-- PWA: Manifest e Service Worker -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007bff">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('Service Worker registrado!'))
+      .catch(err => console.error('Erro ao registrar SW:', err));
+  }
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO -->
+  <meta name="description" content="Controle financeiro pessoal com metas, gráficos e exportações. Gerencie sua vida financeira de forma simples e eficaz.">
+  <meta name="keywords" content="controle financeiro, finanças pessoais, orçamento, metas, gráficos, despesas, receitas">
+  <meta name="author" content="Finance">
+
+  <!-- Redes Sociais: Open Graph (Facebook, LinkedIn) -->
+  <meta property="og:title" content="Controle Financeiro Pessoal">
+  <meta property="og:description" content="Gerencie suas finanças com praticidade e visualize suas metas e resultados com gráficos interativos.">
+  <meta property="finance" content="Finance.png">
+  <meta property="og:url" content="https://seusite.com">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Controle Financeiro Pessoal">
+  <meta name="twitter:description" content="Gerencie suas finanças com praticidade e visualize metas com gráficos.">
+  <meta name="twitter:image" content="URL_DA_IMAGEM.png">
+
+  <!-- Segurança -->
+
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!-- Título e Favicon -->
+  <title>Controle Financeiro</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    
+  <meta charset="UTF-8" />
+  <title>Controle Financeiro</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+  
+  .dashboard-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  cursor: pointer;
+}
+    :root {
+      --bg: #f5f7fa;
+      --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      --text: #333;
+      --card-bg: white;
+      --primary: #007bff;
+      --primary-hover: #0056b3;
+      --danger: #dc3545;
+      --alert: #ffcc00;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1e1e2f;
+      --bg-gradient: linear-gradient(135deg, #1e1e2f 0%, #2c3e50 100%);
+      --text: #eee;
+      --card-bg: #2c2f3a;
+      --primary: #0d6efd;
+      --primary-hover: #0a58ca;
+      --danger: #ff6b6b;
+      --alert: #ffd54f;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg-gradient);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      cursor: pointer;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 40px auto;
+      background: var(--card-bg);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .dashboard {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      flex: 1;
+      padding: 20px;
+      border-radius: 15px;
+      background: var(--bg-gradient);
+      color: var(--text);
+      text-align: center;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+
+    form input, form select, form button, .filtros select {
+      width: 100%;
+      padding: 12px;
+      margin: 6px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      background: var(--card-bg);
+      color: var(--text);
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      margin-top: 20px;
+    }
+
+    li {
+      background: #e6e9ef;
+      margin: 6px 0;
+      padding: 12px;
+      border-radius: 8px;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    [data-theme="dark"] li {
+      background: #3a3f51;
+    }
+
+    .remove-btn {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+    }
+
+    .metas {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .metas input {
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: var(--card-bg);
+      color: var(--text);
+    }
+
+    .alerta {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+      animation: fadeIn 0.4s ease-in-out;
+      border: 2px solid;
+    }
+
+    .alerta.gasto {
+      background-color: #ff6b6b;
+      color: white;
+      border-color: #c62828;
+    }
+
+    .alerta.reserva {
+      background-color: #4caf50;
+      color: white;
+      border-color: #2e7d32;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .export-area, .reset-area {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .export-btn {
+      flex: 1;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .graficos {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px dashed var(--primary);
+    }
+
+    canvas {
+      margin-top: 30px;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+    
+    <button class="dashboard-btn" onclick="window.location.href='dashboards.html'">
+  <i class="fas fa-chart-bar"></i>
+</button>
+  <button class="theme-toggle" onclick="alternarTema()"><i class="fas fa-moon"></i></button>
+
+  <div class="container">
+    <h1><i class="fas fa-wallet"></i> Controle Financeiro</h1>
+
+    <div class="dashboard">
+      <div class="card" id="totalSaldo">Saldo Total: R$ 0.00</div>
+      <div class="card" id="totalEntradas">Entradas: R$ 0.00</div>
+      <div class="card" id="totalSaidas">Saídas: R$ 0.00</div>
+    </div>
+
+    <form id="form-transacao">
+      <input type="text" id="descricao" placeholder="Descrição" required>
+      <input type="number" id="valor" placeholder="Valor" required>
+      <input type="text" id="categoria" placeholder="Categoria" required>
+      <select id="tipo">
+        <option value="entrada">Entrada</option>
+        <option value="saida">Saída</option>
+      </select>
+      <button type="submit">Adicionar Transação</button>
+    </form>
+
+    <div class="metas">
+      <input type="number" id="metaGasto" placeholder="Meta de gasto (R$)">
+      <input type="number" id="metaReserva" placeholder="Meta de reserva (R$)">
+    </div>
+    <div class="alerta" id="alertaMeta"></div>
+
+    <ul id="lista"></ul>
+
+    <div class="export-area">
+      <button class="export-btn" id="exportarExcel">Exportar Excel</button>
+      <button class="export-btn" id="exportarPDF">Exportar PDF</button>
+    </div>
+
+    <div class="reset-area">
+      <button class="export-btn" onclick="confirmarReset()">Redefinir Tudo</button>
+    </div>
+
+    <div class="graficos">
+      <canvas id="graficoPizza"></canvas>
+      <canvas id="graficoColuna" style="height: 400px;"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("form-transacao");
+    const lista = document.getElementById("lista");
+    const metaGasto = document.getElementById("metaGasto");
+    const metaReserva = document.getElementById("metaReserva");
+    const alertaMeta = document.getElementById("alertaMeta");
+
+    let transacoes = JSON.parse(localStorage.getItem("transacoes")) || [];
+
+    function salvarLocal() {
+      localStorage.setItem("transacoes", JSON.stringify(transacoes));
+    }
+
+    function alternarTema() {
+  const html = document.documentElement;
+  const novoTema = html.dataset.theme === "dark" ? "light" : "dark";
+  html.dataset.theme = novoTema;
+  localStorage.setItem("tema", novoTema);
+}
+
+    
+
+
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const desc = document.getElementById("descricao").value;
+      const val = parseFloat(document.getElementById("valor").value);
+      const cat = document.getElementById("categoria").value;
+      const tipo = document.getElementById("tipo").value;
+      transacoes.push({ descricao: desc, valor: val, categoria: cat, tipo });
+      salvarLocal();
+      form.reset();
+      render();
+    };
+
+    function render() {
+      lista.innerHTML = "";
+      let entrada = 0, saida = 0;
+      transacoes.forEach((t, i) => {
+        if (t.tipo === "entrada") entrada += t.valor;
+        else saida += t.valor;
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span>${t.descricao} - R$ ${t.valor.toFixed(2)} (${t.categoria})</span>
+          <button class="remove-btn" onclick="remover(${i})"><i class="fas fa-trash"></i></button>
+        `;
+        lista.appendChild(li);
+      });
+
+      document.getElementById("totalSaldo").textContent = `Saldo Total: R$ ${(entrada - saida).toFixed(2)}`;
+      document.getElementById("totalEntradas").textContent = `Entradas: R$ ${entrada.toFixed(2)}`;
+      document.getElementById("totalSaidas").textContent = `Saídas: R$ ${saida.toFixed(2)}`;
+
+      verificarMetas(entrada, saida);
+      atualizarGraficos(entrada, saida);
+    }
+
+    function remover(i) {
+      transacoes.splice(i, 1);
+      salvarLocal();
+      render();
+    }
+
+    function verificarMetas(entrada, saida) {
+      const metaG = parseFloat(metaGasto.value);
+      const metaR = parseFloat(metaReserva.value);
+      alertaMeta.className = "alerta";
+      alertaMeta.style.display = "none";
+
+      if (!isNaN(metaG) && saida >= metaG) {
+        alertaMeta.classList.add("gasto");
+        alertaMeta.textContent = `Atenção: Você ultrapassou sua meta de gasto de R$ ${metaG.toFixed(2)}!`;
+        alertaMeta.style.display = "block";
+      } else if (!isNaN(metaR) && (entrada - saida) >= metaR) {
+        alertaMeta.classList.add("reserva");
+        alertaMeta.textContent = `Parabéns: Você atingiu sua meta de reserva de R$ ${metaR.toFixed(2)}!`;
+        alertaMeta.style.display = "block";
+      }
+    }
+
+    function confirmarReset() {
+      if (confirm("Tem certeza que deseja apagar todos os dados?")) {
+        transacoes = [];
+        salvarLocal();
+        render();
+      }
+    }
+
+    function atualizarGraficos(entrada, saida) {
+      const pizza = document.getElementById("graficoPizza").getContext("2d");
+      const coluna = document.getElementById("graficoColuna").getContext("2d");
+
+      if (window.graficoPizza) window.graficoPizza.destroy();
+      if (window.graficoColuna) window.graficoColuna.destroy();
+
+      const total = entrada + saida;
+      const pctEntrada = total ? (entrada / total) * 100 : 0;
+      const pctSaida = total ? (saida / total) * 100 : 0;
+
+      window.graficoPizza = new Chart(pizza, {
+        type: "pie",
+        data: {
+          labels: ["Entradas (%)", "Saídas (%)"],
+          datasets: [{
+            data: [pctEntrada, pctSaida],
+            backgroundColor: ["#4caf50", "#f44336"]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "bottom" } }
+        }
+      });
+
+      window.graficoColuna = new Chart(coluna, {
+        type: "bar",
+        data: {
+          labels: ["Entradas", "Saídas"],
+          datasets: [{
+            data: [entrada, saida],
+            backgroundColor: ["#4caf50", "#f44336"],
+            borderRadius: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => `R$ ${ctx.parsed.y.toFixed(2)}` } }
+          }
+        }
+      });
+    }
+
+    document.getElementById("exportarExcel").onclick = () => {
+      const ws = XLSX.utils.json_to_sheet(transacoes);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Transações");
+      XLSX.writeFile(wb, "controle_financeiro.xlsx");
+    };
+
+    document.getElementById("exportarPDF").onclick = () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const rows = transacoes.map(t => [t.descricao, `R$ ${t.valor.toFixed(2)}`, t.categoria, t.tipo]);
+      doc.autoTable({ head: [["Descrição", "Valor", "Categoria", "Tipo"]], body: rows });
+      doc.save("controle_financeiro.pdf");
+    };
+
+function carregarTema() {
+  const temaSalvo = localStorage.getItem("tema");
+  if (temaSalvo) {
+    document.documentElement.dataset.theme = temaSalvo;
+  }
+}
+
+function carregarMetas() {
+  const metaG = localStorage.getItem("metaGasto");
+  const metaR = localStorage.getItem("metaReserva");
+  if (metaG !== null) metaGasto.value = metaG;
+  if (metaR !== null) metaReserva.value = metaR;
+}
+
+metaGasto.addEventListener("input", () => {
+  localStorage.setItem("metaGasto", metaGasto.value);
+  render();
+});
+
+metaReserva.addEventListener("input", () => {
+  localStorage.setItem("metaReserva", metaReserva.value);
+  render();
+});
+
+    window.onload = () => {
+  carregarTema();
+  carregarMetas();
+  render();
+  setTimeout(() => {
+    const totalEntrada = transacoes.filter(t => t.tipo === "entrada").reduce((acc, t) => acc + t.valor, 0);
+    const totalSaida = transacoes.filter(t => t.tipo === "saida").reduce((acc, t) => acc + t.valor, 0);
+    atualizarGraficos(totalEntrada, totalSaida);
+  }, 100);
+};
+  </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    
+    <!-- PWA: Manifest e Service Worker -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007bff">
+<script>
+<script>
+  if (localStorage.getItem("visitou")) {
+    window.location.href = "index.html"; // Já visitou → pula direto
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('Service Worker registrado!'))
+      .catch(err => console.error('Erro ao registrar SW:', err));
+  }
+</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle Financeiro</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --bg-gradient: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+      --text: #222;
+      --card-bg: #fff;
+      --primary: #007bff;
+      --primary-hover: #0056b3;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1f2937;
+      --bg-gradient: linear-gradient(135deg, #1f2937, #111827);
+      --text: #eee;
+      --card-bg: #2d3748;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      transition: opacity 0.8s ease;
+    }
+
+    .fade-out {
+      animation: fadeOut 0.8s forwards;
+    }
+
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        transform: scale(1.05);
+      }
+    }
+
+    section {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+      color: white;
+    }
+
+    .hero h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+    }
+
+    .hero p {
+      font-size: 1.2em;
+      max-width: 600px;
+    }
+
+    .btn {
+      padding: 15px 30px;
+      font-size: 1.1em;
+      margin-top: 30px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn:hover {
+      background-color: #2980b9;
+    }
+  </style>
+</head>
+<body>
+  <!-- Seção de Boas-Vindas -->
+  <section class="hero">
+    <h1>Bem-vindo ao Controle Financeiro</h1>
+    <p>Gerencie seu dinheiro com gráficos inteligentes, metas mensais e muito estilo.</p>
+    <button class="btn" id="comecarBtn">Começar Agora</button>
+  </section>
+
+  <script>
+    // Aplicar tema salvo
+    const temaSalvo = localStorage.getItem("tema") || "light";
+    document.documentElement.setAttribute("data-theme", temaSalvo);
+
+    // Animação + Redirecionamento
+    document.getElementById("comecarBtn").addEventListener("click", () => {
+      document.body.classList.add("fade-out");
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 800);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboards</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const temaSalvo = localStorage.getItem("tema") || "light";
+    document.documentElement.setAttribute("data-theme", temaSalvo);
+  </script>
+  
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --bg-gradient: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+      --text: #222;
+      --card-bg: #fff;
+      --primary: #007bff;
+      --primary-hover: #0056b3;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1f2937;
+      --bg-gradient: linear-gradient(135deg, #1f2937, #111827);
+      --text: #eee;
+      --card-bg: #2d3748;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+    }
+
+    .theme-toggle, .voltar-btn {
+      position: fixed;
+      top: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: none;
+      font-size: 20px;
+      color: white;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    .theme-toggle {
+      right: 20px;
+      background-color: var(--primary);
+    }
+
+    .voltar-btn {
+      left: 20px;
+      background-color: var(--primary);
+    }
+
+    .dashboard-container {
+      max-width: 1000px;
+      margin: 80px auto 40px;
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    canvas {
+      margin: 30px auto;
+      display: block;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <button class="voltar-btn" onclick="window.location.href='index.html'">
+    <i class="fas fa-arrow-left"></i>
+  </button>
+  <button class="theme-toggle" onclick="alternarTema()" id="btnTema">
+    <i class="fa-moon"></i>
+  </button>
+
+  <div class="dashboard-container">
+    <h1><i class="fas fa-chart-pie"></i> Dashboards Financeiros</h1>
+
+    <canvas id="graficoPizzaDashboard"></canvas>
+    <canvas id="graficoBarraDashboard"></canvas>
+    <canvas id="graficoMetasMensais"></canvas>
+  </div>
+
+  <script>
+    function alternarTema() {
+      const html = document.documentElement;
+      const icone = document.getElementById("btnTema").firstElementChild;
+      const novoTema = html.dataset.theme === "dark" ? "light" : "dark";
+      html.dataset.theme = novoTema;
+      localStorage.setItem("tema", novoTema);
+      icone.className = novoTema === "dark" ? "fas fa-moon" : "fas fa-moon";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const icone = document.getElementById("btnTema").firstElementChild;
+      const tema = document.documentElement.dataset.theme;
+      icone.className = tema === "dark" ? "fas fa-sun" : "fas fa-moon";
+    });
+
+    const transacoes = JSON.parse(localStorage.getItem("transacoes")) || [];
+
+    // Pizza - categorias de saída
+    const categorias = {};
+    transacoes.forEach(t => {
+      if (t.tipo === "saida") {
+        categorias[t.categoria] = (categorias[t.categoria] || 0) + t.valor;
+      }
+    });
+
+    new Chart(document.getElementById("graficoPizzaDashboard"), {
+      type: "pie",
+      data: {
+        labels: Object.keys(categorias),
+        datasets: [{
+          data: Object.values(categorias),
+          backgroundColor: ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899"],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom" },
+          title: { display: true, text: "Despesas por Categoria" }
+        }
+      }
+    });
+
+    // Barras - entradas vs saídas
+    let entradas = 0;
+    let saidas = 0;
+    transacoes.forEach(t => {
+      if (t.tipo === "entrada") entradas += t.valor;
+      else saidas += t.valor;
+    });
+
+    new Chart(document.getElementById("graficoBarraDashboard"), {
+      type: "bar",
+      data: {
+        labels: ["Entradas", "Saídas"],
+        datasets: [{
+          label: "R$",
+          data: [entradas, saidas],
+          backgroundColor: ["#22c55e", "#ef4444"],
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: "Entradas vs Saídas" }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: valor => `R$ ${valor.toFixed(2)}`
+            }
+          }
+        }
+      }
+    });
+
+    // Evolução anual de metas
+    const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const metasPorMes = JSON.parse(localStorage.getItem("metasPorMes")) || {};
+    const valoresGastos = meses.map((_, i) => metasPorMes[i + 1]?.gasto || 0);
+    const valoresReservas = meses.map((_, i) => metasPorMes[i + 1]?.reserva || 0);
+
+    new Chart(document.getElementById("graficoMetasMensais"), {
+      type: "line",
+      data: {
+        labels: meses,
+        datasets: [
+          {
+            label: "Meta de Gastos",
+            data: valoresGastos,
+            borderColor: "#f59e0b",
+            backgroundColor: "transparent",
+            tension: 0.3
+          },
+          {
+            label: "Meta de Reserva",
+            data: valoresReservas,
+            borderColor: "#10b981",
+            backgroundColor: "transparent",
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: "Evolução das Metas Mensais (Ano Atual)" },
+          legend: { position: "bottom" }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: valor => `R$ ${valor.toFixed(2)}`
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
